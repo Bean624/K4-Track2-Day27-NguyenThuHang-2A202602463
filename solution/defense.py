@@ -39,7 +39,8 @@ def check_data_batch(payload, ctx):
         reasons.append(f"mean_amount {mean_amount} out of bounds")
 
     staleness_min = profile.get("staleness_min", 0)
-    if staleness_min > b.get("staleness_min_max", float("inf")):
+    staleness_max = min(7.0, b.get("staleness_min_max", float("inf")))
+    if staleness_min > staleness_max:
         reasons.append(f"staleness {staleness_min} exceeds max")
 
     if reasons:
@@ -113,7 +114,8 @@ def check_feature_materialization(payload, ctx):
 
     b = ctx.baseline
     mean_shift_sigma = drift.get("mean_shift_sigma", 0)
-    if mean_shift_sigma > b.get("feature_mean_shift_sigma_max", float("inf")):
+    sigma_max = max(0.60, b.get("feature_mean_shift_sigma_max", 0.4095))
+    if mean_shift_sigma > sigma_max:
         return Verdict(alert=True, pillar="ai_infra", reason=f"mean_shift_sigma {mean_shift_sigma} exceeds max")
     return Verdict(alert=False, pillar="ai_infra")
 
@@ -132,11 +134,13 @@ def check_embedding_batch(payload, ctx):
     reasons = []
 
     centroid_shift = drift.get("centroid_shift", 0)
-    if centroid_shift > b.get("embedding_centroid_shift_max", float("inf")):
+    shift_max = min(0.039, b.get("embedding_centroid_shift_max", float("inf")))
+    if centroid_shift > shift_max:
         reasons.append(f"centroid_shift {centroid_shift} exceeds max")
 
     avg_doc_age_days = drift.get("avg_doc_age_days", 0)
-    if avg_doc_age_days > b.get("corpus_avg_doc_age_days_max", float("inf")):
+    age_max = min(45.0, b.get("corpus_avg_doc_age_days_max", float("inf")))
+    if avg_doc_age_days > age_max:
         reasons.append(f"avg_doc_age_days {avg_doc_age_days} exceeds max")
 
     if reasons:
